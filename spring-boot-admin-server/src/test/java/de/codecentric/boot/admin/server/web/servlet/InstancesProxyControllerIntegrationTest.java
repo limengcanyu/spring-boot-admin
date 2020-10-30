@@ -16,34 +16,41 @@
 
 package de.codecentric.boot.admin.server.web.servlet;
 
-import de.codecentric.boot.admin.server.AdminServletApplicationTest;
-import de.codecentric.boot.admin.server.web.AbstractInstancesProxyControllerIntegrationTest;
+import javax.annotation.Nullable;
 
-import org.junit.After;
-import org.junit.Before;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
 
+import de.codecentric.boot.admin.server.AdminServletApplicationTest;
+import de.codecentric.boot.admin.server.web.AbstractInstancesProxyControllerIntegrationTest;
+
 public class InstancesProxyControllerIntegrationTest extends AbstractInstancesProxyControllerIntegrationTest {
-    private ConfigurableApplicationContext context;
 
-    @Before
-    public void setUpContext() {
-        this.context = new SpringApplicationBuilder().sources(AdminServletApplicationTest.TestAdminApplication.class)
-                                                     .web(WebApplicationType.SERVLET)
-                                                     .run(
-                                                         "--server.port=0",
-                                                    "--eureka.client.enabled=false",
-                                                         "--spring.boot.admin.monitor.default-timeout=5000"
-                                                );
-        this.setUpClient(this.context);
-    }
+	@Nullable
+	private static ConfigurableApplicationContext context;
 
-    @After
-    public void tearDownContext() {
-        if (this.context != null) {
-            this.context.close();
-        }
-    }
+	@BeforeAll
+	public static void setUpContext() {
+		context = new SpringApplicationBuilder().sources(AdminServletApplicationTest.TestAdminApplication.class)
+				.web(WebApplicationType.SERVLET)
+				.run("--server.port=0", "--spring.boot.admin.monitor.default-timeout=2500");
+
+	}
+
+	@BeforeEach
+	public void setUpClient() {
+		super.setUpClient(context);
+	}
+
+	@AfterAll
+	public static void tearDownContext() {
+		if (context != null) {
+			context.close();
+		}
+	}
+
 }

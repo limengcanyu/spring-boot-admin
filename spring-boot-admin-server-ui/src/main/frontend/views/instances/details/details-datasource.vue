@@ -15,13 +15,13 @@
   -->
 
 <template>
-  <sba-panel :title="`Datasource: ${dataSource}`" v-if="hasLoaded">
+  <sba-panel :title="$t('instances.details.datasource.title', {dataSource: dataSource})" v-if="hasLoaded">
     <div>
       <div v-if="error" class="message is-danger">
         <div class="message-body">
           <strong>
             <font-awesome-icon class="has-text-danger" icon="exclamation-triangle" />
-            Fetching datasource metrics failed.
+            <span v-text="$t('instances.details.datasource.fetch_failed')" />
           </strong>
           <p v-text="error.message" />
         </div>
@@ -29,29 +29,21 @@
       <div class="level datasource-current" v-if="current">
         <div class="level-item has-text-centered">
           <div>
-            <p class="heading has-bullet has-bullet-info">
-              Active connections
-            </p>
+            <p class="heading has-bullet has-bullet-info" v-text="$t('instances.details.datasource.active_connections')" />
             <p v-text="current.active" />
           </div>
         </div>
         <div class="level-item has-text-centered">
           <div>
-            <p class="heading">
-              Min connections
-            </p>
+            <p class="heading" v-text="$t('instances.details.datasource.min_connections')" />
             <p v-text="current.min" />
           </div>
         </div>
         <div class="level-item has-text-centered">
           <div>
-            <p class="heading">
-              Max connections
-            </p>
+            <p class="heading" v-text="$t('instances.details.datasource.max_connections')" />
             <p v-if="current.max >= 0" v-text="current.max" />
-            <p v-else>
-              unlimited
-            </p>
+            <p v-else v-text="$t('instances.details.datasource.unlimited')" />
           </div>
         </div>
       </div>
@@ -61,6 +53,7 @@
 </template>
 
 <script>
+  import sbaConfig from '@/sba-config';
   import subscribing from '@/mixins/subscribing';
   import Instance from '@/services/instance';
   import {concatMap, timer} from '@/utils/rxjs';
@@ -100,7 +93,7 @@
       },
       createSubscription() {
         const vm = this;
-        return timer(0, 2500)
+        return timer(0, sbaConfig.uiSettings.pollTimer.datasource)
           .pipe(concatMap(vm.fetchMetrics))
           .subscribe({
             next: data => {

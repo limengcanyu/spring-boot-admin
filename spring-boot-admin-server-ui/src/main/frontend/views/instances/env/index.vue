@@ -1,5 +1,5 @@
 <!--
-  - Copyright 2014-2018 the original author or authors.
+  - Copyright 2014-2020 the original author or authors.
   -
   - Licensed under the Apache License, Version 2.0 (the "License");
   - you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@
       <div class="message-body">
         <strong>
           <font-awesome-icon class="has-text-danger" icon="exclamation-triangle" />
-          Fetching environment failed.
+          <span v-text="$t('instances.env.fetch_failed')" />
         </strong>
         <p v-text="error.message" />
       </div>
@@ -28,9 +28,7 @@
     <div class="field is-grouped is-grouped-multiline" v-if="env && env.activeProfiles.length > 0">
       <div class="control" v-for="profile in env.activeProfiles" :key="profile">
         <div class="tags has-addons">
-          <span class="tag is-medium is-primary">
-            Profile
-          </span>
+          <span class="tag is-medium is-primary" v-text="$t('instances.env.active_profile')" />
           <span class="tag is-medium" v-text="profile" />
         </div>
       </div>
@@ -56,7 +54,7 @@
                :title="propertySource.name"
     >
       <table class="table is-fullwidth"
-             v-if="Object.keys(propertySource.properties).length > 0"
+             v-if="propertySource.properties && Object.keys(propertySource.properties).length > 0"
       >
         <tr v-for="(value, name) in propertySource.properties" :key="`${propertySource.name}-${name}`">
           <td>
@@ -66,9 +64,7 @@
           <td class="is-breakable" v-text="value.value" />
         </tr>
       </table>
-      <p class="is-muted" v-else>
-        No properties set
-      </p>
+      <p class="is-muted" v-else v-text="$t('instances.env.no_properties')" />
     </sba-panel>
   </section>
 </template>
@@ -76,10 +72,11 @@
 <script>
   import Instance from '@/services/instance';
   import pickBy from 'lodash/pickBy';
+  import {VIEW_GROUP} from '../../index';
   import sbaEnvManager from './env-manager';
 
   const filterProperty = (needle) => (property, name) => {
-    return name.toString().toLowerCase().includes(needle) || property.value.toString().toLowerCase().includes(needle);
+    return name.toString().toLowerCase().includes(needle) || (property.value && property.value.toString().toLowerCase().includes(needle));
   };
   const filterProperties = (needle, properties) => pickBy(properties, filterProperty(needle));
   const filterPropertySource = (needle) => (propertySource) => {
@@ -151,8 +148,8 @@
         parent: 'instances',
         path: 'env',
         component: this,
-        label: 'Environment',
-        group: 'Insights',
+        label: 'instances.env.label',
+        group: VIEW_GROUP.INSIGHTS,
         order: 100,
         isEnabled: ({instance}) => instance.hasEndpoint('env')
       });

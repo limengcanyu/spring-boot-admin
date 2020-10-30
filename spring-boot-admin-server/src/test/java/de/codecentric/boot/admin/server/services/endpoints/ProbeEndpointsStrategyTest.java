@@ -16,26 +16,30 @@
 
 package de.codecentric.boot.admin.server.services.endpoints;
 
+import java.time.Duration;
+
+import com.github.tomakehurst.wiremock.WireMockServer;
+import com.github.tomakehurst.wiremock.core.Options;
+import com.github.tomakehurst.wiremock.http.Fault;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import reactor.test.StepVerifier;
+import wiremock.org.eclipse.jetty.http.HttpStatus;
+
 import de.codecentric.boot.admin.server.domain.entities.Instance;
 import de.codecentric.boot.admin.server.domain.values.Endpoints;
 import de.codecentric.boot.admin.server.domain.values.InstanceId;
 import de.codecentric.boot.admin.server.domain.values.Registration;
 import de.codecentric.boot.admin.server.web.client.InstanceWebClient;
-import reactor.test.StepVerifier;
-import wiremock.org.eclipse.jetty.http.HttpStatus;
-
-import java.time.Duration;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import com.github.tomakehurst.wiremock.core.Options;
-import com.github.tomakehurst.wiremock.junit.WireMockRule;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.notFound;
 import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.options;
+import static com.github.tomakehurst.wiremock.client.WireMock.serverError;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.stubbing.Scenario.STARTED;
 import static de.codecentric.boot.admin.server.web.client.InstanceExchangeFilterFunctions.retry;
@@ -44,108 +48,107 @@ import static java.util.Collections.emptyMap;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class ProbeEndpointsStrategyTest {
-    @Rule
-    public WireMockRule wireMock = new WireMockRule(Options.DYNAMIC_PORT);
 
-    private InstanceWebClient instanceWebClient = InstanceWebClient.builder()
-                                                                   .filter(retry(1, emptyMap()))
-                                                                   .filter(timeout(Duration.ofSeconds(2), emptyMap()))
-                                                                   .build();
+	public WireMockServer wireMock = new WireMockServer(Options.DYNAMIC_PORT);
 
-    @BeforeClass
-    public static void setUp() {
-        StepVerifier.setDefaultTimeout(Duration.ofSeconds(5));
-    }
+	private InstanceWebClient instanceWebClient = InstanceWebClient.builder().filter(retry(1, emptyMap()))
+			.filter(timeout(Duration.ofSeconds(1), emptyMap())).build();
 
-    @AfterClass
-    public static void tearDown() {
-        StepVerifier.resetDefaultTimeout();
-    }
+	@BeforeAll
+	public static void setUp() {
+		StepVerifier.setDefaultTimeout(Duration.ofSeconds(5));
+	}
 
-    @Test
-    public void invariants() {
-        assertThatThrownBy(() -> new ProbeEndpointsStrategy(this.instanceWebClient, null)).isInstanceOf(
-            IllegalArgumentException.class).hasMessage("'endpoints' must not be null.");
-        assertThatThrownBy(() -> new ProbeEndpointsStrategy(this.instanceWebClient, new String[]{null})).isInstanceOf(
-            IllegalArgumentException.class).hasMessage("'endpoints' must not contain null.");
-    }
+	@AfterAll
+	public static void tearDown() {
+		StepVerifier.resetDefaultTimeout();
+	}
 
-    @Test
-    public void should_return_detect_endpoints() {
-        //given
-        Instance instance = Instance.create(InstanceId.of("id"))
-                                    .register(Registration.create("test", this.wireMock.url("/mgmt/health"))
-                                                          .managementUrl(this.wireMock.url("/mgmt"))
-                                                          .build());
+	@BeforeEach
+	void setup() {
+		wireMock.start();
+	}
 
-        this.wireMock.stubFor(options(urlEqualTo("/mgmt/metrics")).willReturn(ok()));
-        this.wireMock.stubFor(options(urlEqualTo("/mgmt/stats")).willReturn(ok()));
-        this.wireMock.stubFor(options(urlEqualTo("/mgmt/info")).willReturn(ok()));
-        this.wireMock.stubFor(options(urlEqualTo("/mgmt/non-exist")).willReturn(notFound()));
+	@AfterEach
+	void teardsown() {
+		wireMock.stop();
+	}
 
-        ProbeEndpointsStrategy strategy = new ProbeEndpointsStrategy(
-            this.instanceWebClient,
-            new String[]{"metrics:stats", "metrics", "info", "non-exist"}
-        );
+	@Test
+	public void invariants() {
+		assertThatThrownBy(() -> new ProbeEndpointsStrategy(this.instanceWebClient, null))
+				.isInstanceOf(IllegalArgumentException.class).hasMessage("'endpoints' must not be null.");
+		assertThatThrownBy(() -> new ProbeEndpointsStrategy(this.instanceWebClient, new String[] { null }))
+				.isInstanceOf(IllegalArgumentException.class).hasMessage("'endpoints' must not contain null.");
+	}
 
-        //when
-        StepVerifier.create(strategy.detectEndpoints(instance))
-                    //then
-                    .expectNext(Endpoints.single("metrics", this.wireMock.url("/mgmt/stats"))
-                                         .withEndpoint("info", this.wireMock.url("/mgmt/info")))//
-                    .verifyComplete();
-    }
+	@Test
+	public void should_return_detect_endpoints() {
+		// given
+		Instance instance = Instance.create(InstanceId.of("id")).register(Registration
+				.create("test", this.wireMock.url("/mgmt/health")).managementUrl(this.wireMock.url("/mgmt")).build());
 
-    @Test
-    public void should_return_empty() {
-        //given
-        Instance instance = Instance.create(InstanceId.of("id"))
-                                    .register(Registration.create("test", this.wireMock.url("/mgmt/health"))
-                                                          .managementUrl(this.wireMock.url("/mgmt"))
-                                                          .build());
+		this.wireMock.stubFor(options(urlEqualTo("/mgmt/metrics")).willReturn(ok()));
+		this.wireMock.stubFor(options(urlEqualTo("/mgmt/stats")).willReturn(ok()));
+		this.wireMock.stubFor(options(urlEqualTo("/mgmt/info")).willReturn(ok()));
+		this.wireMock.stubFor(options(urlEqualTo("/mgmt/non-exist")).willReturn(notFound()));
+		this.wireMock.stubFor(options(urlEqualTo("/mgmt/error")).willReturn(serverError()));
+		this.wireMock.stubFor(
+				options(urlEqualTo("/mgmt/exception")).willReturn(aResponse().withFault(Fault.EMPTY_RESPONSE)));
 
-        this.wireMock.stubFor(options(urlEqualTo("/mgmt/stats")).willReturn(aResponse().withStatus(HttpStatus.NOT_FOUND_404)));
+		ProbeEndpointsStrategy strategy = new ProbeEndpointsStrategy(this.instanceWebClient,
+				new String[] { "metrics:stats", "metrics", "info", "non-exist", "error", "exception" });
 
-        ProbeEndpointsStrategy strategy = new ProbeEndpointsStrategy(this.instanceWebClient,
-            new String[]{"metrics:stats"}
-        );
+		// when
+		StepVerifier.create(strategy.detectEndpoints(instance))
+				// then
+				.expectNext(Endpoints.single("metrics", this.wireMock.url("/mgmt/stats")).withEndpoint("info",
+						this.wireMock.url("/mgmt/info")))//
+				.verifyComplete();
+	}
 
-        //when
-        StepVerifier.create(strategy.detectEndpoints(instance))
-                    //then
-                    .verifyComplete();
-    }
+	@Test
+	public void should_return_empty() {
+		// given
+		Instance instance = Instance.create(InstanceId.of("id")).register(Registration
+				.create("test", this.wireMock.url("/mgmt/health")).managementUrl(this.wireMock.url("/mgmt")).build());
 
-    @Test
-    public void should_retry() {
-        //given
-        Instance instance = Instance.create(InstanceId.of("id"))
-                                    .register(Registration.create("test", this.wireMock.url("/mgmt/health"))
-                                                          .managementUrl(this.wireMock.url("/mgmt"))
-                                                          .build());
+		this.wireMock.stubFor(
+				options(urlEqualTo("/mgmt/stats")).willReturn(aResponse().withStatus(HttpStatus.NOT_FOUND_404)));
 
-        this.wireMock.stubFor(options(urlEqualTo("/mgmt/metrics")).inScenario("retry")
-                                                                  .whenScenarioStateIs(STARTED)
-                                                                  .willReturn(aResponse().withFixedDelay(5000))
-                                                                  .willSetStateTo("recovered"));
+		ProbeEndpointsStrategy strategy = new ProbeEndpointsStrategy(this.instanceWebClient,
+				new String[] { "metrics:stats" });
 
-        this.wireMock.stubFor(options(urlEqualTo("/mgmt/metrics")).inScenario("retry")
-                                                                  .whenScenarioStateIs("recovered")
-                                                                  .willReturn(ok()));
-        this.wireMock.stubFor(options(urlEqualTo("/mgmt/stats")).willReturn(ok()));
-        this.wireMock.stubFor(options(urlEqualTo("/mgmt/info")).willReturn(ok()));
-        this.wireMock.stubFor(options(urlEqualTo("/mgmt/non-exist")).willReturn(notFound()));
+		// when
+		StepVerifier.create(strategy.detectEndpoints(instance))
+				// then
+				.verifyComplete();
+	}
 
-        ProbeEndpointsStrategy strategy = new ProbeEndpointsStrategy(
-            this.instanceWebClient,
-            new String[]{"metrics:stats", "metrics", "info", "non-exist"}
-        );
+	@Test
+	public void should_retry() {
+		// given
+		Instance instance = Instance.create(InstanceId.of("id")).register(Registration
+				.create("test", this.wireMock.url("/mgmt/health")).managementUrl(this.wireMock.url("/mgmt")).build());
 
-        //when
-        StepVerifier.create(strategy.detectEndpoints(instance))
-                    //then
-                    .expectNext(Endpoints.single("metrics", this.wireMock.url("/mgmt/stats"))
-                                         .withEndpoint("info", this.wireMock.url("/mgmt/info")))//
-                    .verifyComplete();
-    }
+		this.wireMock.stubFor(options(urlEqualTo("/mgmt/metrics")).inScenario("retry").whenScenarioStateIs(STARTED)
+				.willReturn(aResponse().withFixedDelay(5000)).willSetStateTo("recovered"));
+
+		this.wireMock.stubFor(options(urlEqualTo("/mgmt/metrics")).inScenario("retry").whenScenarioStateIs("recovered")
+				.willReturn(ok()));
+		this.wireMock.stubFor(options(urlEqualTo("/mgmt/stats")).willReturn(ok()));
+		this.wireMock.stubFor(options(urlEqualTo("/mgmt/info")).willReturn(ok()));
+		this.wireMock.stubFor(options(urlEqualTo("/mgmt/non-exist")).willReturn(notFound()));
+
+		ProbeEndpointsStrategy strategy = new ProbeEndpointsStrategy(this.instanceWebClient,
+				new String[] { "metrics:stats", "metrics", "info", "non-exist" });
+
+		// when
+		StepVerifier.create(strategy.detectEndpoints(instance))
+				// then
+				.expectNext(Endpoints.single("metrics", this.wireMock.url("/mgmt/stats")).withEndpoint("info",
+						this.wireMock.url("/mgmt/info")))//
+				.verifyComplete();
+	}
+
 }

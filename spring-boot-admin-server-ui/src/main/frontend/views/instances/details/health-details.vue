@@ -1,5 +1,5 @@
 <!--
-  - Copyright 2014-2018 the original author or authors.
+  - Copyright 2014-2020 the original author or authors.
   -
   - Licensed under the Apache License, Version 2.0 (the "License");
   - you may not use this file except in compliance with the License.
@@ -30,8 +30,11 @@
         <table class="health-details table is-fullwidth">
           <tr class="health-details__detail" v-for="detail in details" :key="detail.name">
             <td v-text="detail.name" />
-            <td v-if="name === 'diskSpace'" v-text="prettyBytes(detail.value)" />
-            <td class="is-breakable" v-else v-text="detail.value" />
+            <td v-if="name === 'diskSpace'" v-text="typeof detail.value === 'number' ? prettyBytes(detail.value) : detail.value" />
+            <td v-else-if="typeof detail.value === 'object'">
+              <pre class="is-breakable" v-text="toJson(detail.value)" />
+            </td>
+            <td v-else class="is-breakable" v-text="detail.value" />
           </tr>
         </table>
       </td>
@@ -49,7 +52,7 @@
   import prettyBytes from 'pretty-bytes';
 
   const isChildHealth = (value) => {
-    return value !== null && typeof value === 'object' && value.hasOwnProperty('status');
+    return value !== null && typeof value === 'object' && 'status' in value;
   };
 
   export default {
@@ -65,7 +68,10 @@
       }
     },
     methods: {
-      prettyBytes
+      prettyBytes,
+      toJson(obj) {
+        return JSON.stringify(obj, null, 2);
+      }
     },
     computed: {
       details() {
@@ -93,10 +99,11 @@
 
   td.health-details__nested {
     padding: 0 0 0 0.75em;
+    border-bottom: 0;
   }
 
-  td.health-details__nested {
-    border-bottom: 0;
+  td.health-details__nested pre {
+    padding: 0.5em 0.75em;
   }
 
   .health-details__nested .table {

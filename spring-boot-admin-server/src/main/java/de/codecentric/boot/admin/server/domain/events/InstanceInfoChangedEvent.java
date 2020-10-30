@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2018 the original author or authors.
+ * Copyright 2014-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +16,10 @@
 
 package de.codecentric.boot.admin.server.domain.events;
 
+import java.time.Instant;
+
 import de.codecentric.boot.admin.server.domain.values.Info;
 import de.codecentric.boot.admin.server.domain.values.InstanceId;
-
-import java.time.Instant;
 
 /**
  * This event gets emitted when an instance information changes.
@@ -30,15 +30,20 @@ import java.time.Instant;
 @lombok.EqualsAndHashCode(callSuper = true)
 @lombok.ToString(callSuper = true)
 public class InstanceInfoChangedEvent extends InstanceEvent {
-    private static final long serialVersionUID = 1L;
-    private final Info info;
 
-    public InstanceInfoChangedEvent(InstanceId instance, long version, Info info) {
-        this(instance, version, Instant.now(), info);
-    }
+	public static final String TYPE = "INFO_CHANGED";
 
-    public InstanceInfoChangedEvent(InstanceId instance, long version, Instant timestamp, Info info) {
-        super(instance, version, "INFO_CHANGED", timestamp);
-        this.info = info;
-    }
+	private static final long serialVersionUID = 1L;
+
+	private final Info info;
+
+	public InstanceInfoChangedEvent(InstanceId instance, long version, Info info) {
+		this(instance, version, Instant.now(), info);
+	}
+
+	public InstanceInfoChangedEvent(InstanceId instance, long version, Instant timestamp, Info info) {
+		super(instance, version, TYPE, timestamp);
+		this.info = info;
+	}
+
 }

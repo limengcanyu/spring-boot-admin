@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2018 the original author or authors.
+ * Copyright 2014-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +16,10 @@
 
 package de.codecentric.boot.admin.server.domain.events;
 
+import java.time.Instant;
+
 import de.codecentric.boot.admin.server.domain.values.InstanceId;
 import de.codecentric.boot.admin.server.domain.values.Registration;
-
-import java.time.Instant;
 
 /**
  * This event gets emitted when an instance updates it's registration.
@@ -30,15 +30,21 @@ import java.time.Instant;
 @lombok.EqualsAndHashCode(callSuper = true)
 @lombok.ToString(callSuper = true)
 public class InstanceRegistrationUpdatedEvent extends InstanceEvent {
-    private static final long serialVersionUID = 1L;
-    private final Registration registration;
 
-    public InstanceRegistrationUpdatedEvent(InstanceId instance, long version, Registration registration) {
-        this(instance, version, Instant.now(), registration);
-    }
+	public static final String TYPE = "REGISTRATION_UPDATED";
 
-    public InstanceRegistrationUpdatedEvent(InstanceId instance, long version, Instant timestamp, Registration registration) {
-        super(instance, version, "REGISTRATION_UPDATED", timestamp);
-        this.registration = registration;
-    }
+	private static final long serialVersionUID = 1L;
+
+	private final Registration registration;
+
+	public InstanceRegistrationUpdatedEvent(InstanceId instance, long version, Registration registration) {
+		this(instance, version, Instant.now(), registration);
+	}
+
+	public InstanceRegistrationUpdatedEvent(InstanceId instance, long version, Instant timestamp,
+			Registration registration) {
+		super(instance, version, TYPE, timestamp);
+		this.registration = registration;
+	}
+
 }

@@ -1,5 +1,5 @@
 <!--
-  - Copyright 2014-2019 the original author or authors.
+  - Copyright 2014-2020 the original author or authors.
   -
   - Licensed under the Apache License, Version 2.0 (the "License");
   - you may not use this file except in compliance with the License.
@@ -22,15 +22,9 @@
               :disabled="refreshingRouteCache === 'executing'"
               @click="refreshRoutesCache"
       >
-        <span v-if="refreshingRouteCache === 'completed'">
-          Routes Cache refreshed
-        </span>
-        <span v-else-if="refreshingRouteCache === 'failed'">
-          Failed
-        </span>
-        <span v-else>
-          Refresh Routes Cache
-        </span>
+        <span v-if="refreshingRouteCache === 'completed'" v-text="$t('instances.gateway.route.cache_refreshed')" />
+        <span v-else-if="refreshingRouteCache === 'failed'" v-text="$t('instances.gateway.route.cache_refresh_failed')" />
+        <span v-else v-text="$t('instances.gateway.route.cache_refresh')" />
       </button>
     </div>
   </div>

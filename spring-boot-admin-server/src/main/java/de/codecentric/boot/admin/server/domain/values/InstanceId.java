@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2017 the original author or authors.
+ * Copyright 2014-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,35 +17,34 @@
 package de.codecentric.boot.admin.server.domain.values;
 
 import java.io.Serializable;
+
 import org.springframework.util.Assert;
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonValue;
 
 /**
  * Value type for the instance identifier
  */
 @lombok.Data
 public final class InstanceId implements Serializable, Comparable<InstanceId> {
-    private final String value;
 
-    private InstanceId(String value) {
-        Assert.hasText(value, "'value' must have text");
-        this.value = value;
-    }
+	private final String value;
 
-    @JsonCreator
-    public static InstanceId of(String value) {
-        return new InstanceId(value);
-    }
+	private InstanceId(String value) {
+		Assert.hasText(value, "'value' must have text");
+		this.value = value;
+	}
 
-    @JsonValue
-    @Override
-    public String toString() {
-        return value;
-    }
+	public static InstanceId of(String value) {
+		return new InstanceId(value);
+	}
 
-    @Override
-    public int compareTo(InstanceId that) {
-        return this.value.compareTo(that.value);
-    }
+	@Override
+	public String toString() {
+		return value;
+	}
+
+	@Override
+	public int compareTo(InstanceId that) {
+		return this.value.compareTo(that.value);
+	}
+
 }

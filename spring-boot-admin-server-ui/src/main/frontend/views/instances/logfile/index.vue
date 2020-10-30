@@ -15,18 +15,25 @@
   -->
 
 <template>
-  <div class="section logfile-view" :class="{ 'is-loading' : !hasLoaded }">
+  <div class="section logfile-view" :class="{ 'is-loading' : !hasLoaded}">
     <div v-if="error" class="message is-danger">
       <div class="message-body">
         <strong>
           <font-awesome-icon class="has-text-danger" icon="exclamation-triangle" />
-          Fetching logfile failed.
+          <span v-text="$t('instances.logfile.fetch_failed')" />
         </strong>
         <p v-text="error.message" />
       </div>
     </div>
-    <div class="logfile-view-actions" v-if="hasLoaded">
-      <div class="logfile-view-actions__navigation">
+
+    <div class="logfile-view-actions" v-if="hasLoaded" :class="{ 'logfile-view-actions--sticky' : !atTop }">
+      <div class="logfile-view-action">
+        <label class="checkbox">
+          <input type="checkbox" v-model="wrapLines">
+          <span v-text="$t('instances.logfile.wrap_lines')" />
+        </label>
+      </div>
+      <div class="logfile-view-action logfile-view-action__navigation">
         <sba-icon-button :disabled="atTop" @click="scrollToTop" icon="step-backward" size="lg"
                          icon-class="rotated"
         />
@@ -34,11 +41,19 @@
                          icon-class="rotated"
         />
       </div>
-      <a class="button" :href="`instances/${instance.id}/actuator/logfile`" target="_blank">
-        <font-awesome-icon icon="download" />&nbsp;Download
+      <a class="logfile-view-action button" :href="`instances/${instance.id}/actuator/logfile`" target="_blank">
+        <font-awesome-icon icon="download" />&nbsp;
+        <span v-text="$t('instances.logfile.download')" />
       </a>
     </div>
-    <p v-if="skippedBytes" v-text="`skipped ${prettyBytes(skippedBytes)}`" />
+
+    <div class="log-viewer" :class="{'log-viewer--wrap-lines': wrapLines}">
+      <table>
+        <tr v-if="skippedBytes">
+          <td v-text="`skipped ${prettyBytes(skippedBytes)}`" />
+        </tr>
+      </table>
+    </div>
     <!-- log will be appended here -->
   </div>
 </template>
@@ -51,6 +66,7 @@
   import AnsiUp from 'ansi_up';
   import chunk from 'lodash/chunk';
   import prettyBytes from 'pretty-bytes';
+  import {VIEW_GROUP} from '../../index';
 
   export default {
     props: {
@@ -65,7 +81,8 @@
       error: null,
       atBottom: true,
       atTop: false,
-      skippedBytes: null
+      skippedBytes: null,
+      wrapLines: true
     }),
     created() {
       this.ansiUp = new AnsiUp();
@@ -92,9 +109,13 @@
             next: lines => {
               vm.hasLoaded = true;
               lines.forEach(line => {
-                const child = document.createElement('pre');
-                child.innerHTML = autolink(this.ansiUp.ansi_to_html(line));
-                vm.$el.appendChild(child);
+                const row = document.createElement('tr')
+                const col = document.createElement('td');
+                const pre = document.createElement('pre');
+                pre.innerHTML = autolink(this.ansiUp.ansi_to_html(line));
+                col.appendChild(pre)
+                row.appendChild(col)
+                vm.$el.querySelector('.log-viewer > table').appendChild(row);
               });
 
               if (vm.atBottom) {
@@ -127,8 +148,8 @@
         parent: 'instances',
         path: 'logfile',
         component: this,
-        label: 'Logfile',
-        group: 'Logging',
+        label: 'instances.logfile.label',
+        group: VIEW_GROUP.LOGGING,
         order: 200,
         isEnabled: ({instance}) => instance.hasEndpoint('logfile')
       });
@@ -140,26 +161,48 @@
   @import "~@/assets/css/utilities";
 
   .logfile-view {
-    padding: 1.5em;
+    padding: 0 1.5em 1.5em;
+    position: relative;
 
     pre {
-      word-break: break-all;
-      padding: 0;
-      white-space: pre-wrap;
-      width: 100%;
+      padding: 0 .5em;
+      margin-bottom: 1px;
 
       &:hover {
         background: $grey-lighter;
       }
     }
 
+    .log-viewer {
+      padding: 9.5px;
+      background-color: #fff;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      overflow: auto;
+
+      &--wrap-lines {
+        pre {
+          white-space: pre-wrap;
+        }
+      }
+    }
+
     &-actions {
-      top: (($gap / 2) + $navbar-height-px);
+      top: $navbar-height-px;
       right: ($gap /2);
       display: flex;
       align-items: center;
-      position: sticky;
-      float: right;
+      justify-content: flex-end;
+
+      &--sticky {
+        position: sticky;
+        background: #fff;
+        box-shadow: 0 4px 2px -2px #ccc;
+      }
+    }
+
+    &-action {
+      margin-left: .5em;
 
       &__navigation {
         display: inline-flex;

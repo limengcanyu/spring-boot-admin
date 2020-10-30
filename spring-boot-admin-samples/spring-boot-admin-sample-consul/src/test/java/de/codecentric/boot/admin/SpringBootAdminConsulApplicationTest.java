@@ -16,15 +16,18 @@
 
 package de.codecentric.boot.admin;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringRunner.class)
-@SpringBootTest(classes = {SpringBootAdminConsulApplication.class}, properties = {"spring.cloud.consul.enabled=false"})
+@ExtendWith(SpringExtension.class)
+@SpringBootTest(classes = { SpringBootAdminConsulApplication.class },
+		properties = { "spring.cloud.consul.enabled=false" })
 public class SpringBootAdminConsulApplicationTest {
-    @Test
-    public void contextLoads() {
-    }
+
+	@Test
+	public void contextLoads() {
+	}
+
 }

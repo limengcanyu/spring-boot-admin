@@ -15,13 +15,13 @@
   -->
 
 <template>
-  <sba-panel title="Process" v-if="hasLoaded">
+  <sba-panel :title="$t('instances.details.process.title')" v-if="hasLoaded">
     <div>
       <div v-if="error" class="message is-danger">
         <div class="message-body">
           <strong>
             <font-awesome-icon class="has-text-danger" icon="exclamation-triangle" />
-            Fetching process metrics failed.
+            <span v-text="$t('instances.details.process.fetch_failed.')" />
           </strong>
           <p v-text="error.message" />
         </div>
@@ -29,17 +29,13 @@
       <div class="level">
         <div class="level-item has-text-centered" v-if="pid">
           <div>
-            <p class="heading">
-              PID
-            </p>
+            <p class="heading" v-text="$t('instances.details.process.pid')" />
             <p v-text="pid" />
           </div>
         </div>
         <div class="level-item has-text-centered" v-if="uptime">
           <div>
-            <p class="heading">
-              Uptime
-            </p>
+            <p class="heading" v-text="$t('instances.details.process.uptime')" />
             <p>
               <process-uptime :value="toMillis(uptime.value, uptime.baseUnit)" />
             </p>
@@ -47,25 +43,19 @@
         </div>
         <div class="level-item has-text-centered" v-if="processCpuLoad">
           <div>
-            <p class="heading">
-              Process CPU Usage
-            </p>
+            <p class="heading" v-text="$t('instances.details.process.process_cpu_usage')" />
             <p v-text="processCpuLoad.toFixed(2)" />
           </div>
         </div>
         <div class="level-item has-text-centered" v-if="systemCpuLoad">
           <div>
-            <p class="heading">
-              System CPU Usage
-            </p>
+            <p class="heading" v-text="$t('instances.details.process.system_cpu_usage')" />
             <p v-text="systemCpuLoad.toFixed(2)" />
           </div>
         </div>
         <div class="level-item has-text-centered" v-if="systemCpuCount">
           <div>
-            <p class="heading">
-              CPUs
-            </p>
+            <p class="heading" v-text="$t('instances.details.process.cpus')" />
             <p v-text="systemCpuCount" />
           </div>
         </div>
@@ -75,6 +65,7 @@
 </template>
 
 <script>
+  import sbaConfig from '@/sba-config'
   import subscribing from '@/mixins/subscribing';
   import Instance from '@/services/instance';
   import {concatMap, timer} from '@/utils/rxjs';
@@ -137,7 +128,7 @@
       },
       createSubscription() {
         const vm = this;
-        return timer(0, 2500)
+        return timer(0, sbaConfig.uiSettings.pollTimer.process)
           .pipe(concatMap(this.fetchCpuLoadMetrics))
           .subscribe({
             next: data => {

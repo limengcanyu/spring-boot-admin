@@ -1,6 +1,7 @@
 ---
 logging:
-  file: "target/boot-admin-sample-hazelcast.log"
+  file:
+    name: "target/boot-admin-sample-hazelcast.log"
 
 management:
   endpoints:
@@ -17,10 +18,10 @@ spring:
   boot:
     admin:
       client:
-        url: http://localhost:8080
+        url: http://localhost:${server.port:8080}
   profiles:
     active:
-      - secure
+      - insecure
 
 ---
 spring:

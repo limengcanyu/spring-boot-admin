@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2019 the original author or authors.
+ * Copyright 2014-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,127 +16,161 @@
 
 package de.codecentric.boot.admin.server.config;
 
-import de.codecentric.boot.admin.server.web.PathUtils;
-
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.convert.DurationUnit;
+
+import de.codecentric.boot.admin.server.web.PathUtils;
+import de.codecentric.boot.admin.server.web.client.BasicAuthHttpHeaderProvider.InstanceCredentials;
 
 import static java.util.Arrays.asList;
 
 @lombok.Data
 @ConfigurationProperties("spring.boot.admin")
 public class AdminServerProperties {
-    /**
-     * The context-path prefixes the path where the Admin Servers statics assets and api should be
-     * served. Relative to the Dispatcher-Servlet.
-     */
-    private String contextPath = "";
 
-    private MonitorProperties monitor = new MonitorProperties();
+	/**
+	 * The context-path prefixes the path where the Admin Servers statics assets and api
+	 * should be served. Relative to the Dispatcher-Servlet.
+	 */
+	private String contextPath = "";
 
-    private InstanceProxyProperties instanceProxy = new InstanceProxyProperties();
+	private MonitorProperties monitor = new MonitorProperties();
 
-    /**
-     * The metadata keys which should be sanitized when serializing to json
-     */
-    private String[] metadataKeysToSanitize = new String[]{".*password$", ".*secret$", ".*key$", ".*$token$", ".*credentials.*", ".*vcap_services$"};
+	private InstanceAuthProperties instanceAuth = new InstanceAuthProperties();
 
-    /**
-     * For Spring Boot 2.x applications the endpoints should be discovered automatically using the actuator links.
-     * For Spring Boot 1.x applications SBA probes for the specified endpoints using an OPTIONS request.
-     * If the path differs from the id you can specify this as id:path (e.g. health:ping).
-     */
-    private String[] probedEndpoints = {"health", "env", "metrics", "httptrace:trace", "httptrace", "threaddump:dump", "threaddump", "jolokia", "info", "logfile", "refresh", "flyway", "liquibase", "heapdump", "loggers", "auditevents", "mappings", "scheduledtasks", "configprops", "caches", "beans"};
+	private InstanceProxyProperties instanceProxy = new InstanceProxyProperties();
 
-    public void setContextPath(String contextPath) {
-        this.contextPath = PathUtils.normalizePath(contextPath);
-    }
+	/**
+	 * The metadata keys which should be sanitized when serializing to json
+	 */
+	private String[] metadataKeysToSanitize = new String[] { ".*password$", ".*secret$", ".*key$", ".*token$",
+			".*credentials.*", ".*vcap_services$" };
 
-    /**
-     * @return the given path within the admin context-path
-     */
-    public String path(String path) {
-        return this.contextPath + path;
-    }
+	/**
+	 * For Spring Boot 2.x applications the endpoints should be discovered automatically
+	 * using the actuator links. For Spring Boot 1.x applications SBA probes for the
+	 * specified endpoints using an OPTIONS request. If the path differs from the id you
+	 * can specify this as id:path (e.g. health:ping).
+	 */
+	private String[] probedEndpoints = { "health", "env", "metrics", "httptrace:trace", "httptrace", "threaddump:dump",
+			"threaddump", "jolokia", "info", "logfile", "refresh", "flyway", "liquibase", "heapdump", "loggers",
+			"auditevents", "mappings", "scheduledtasks", "configprops", "caches", "beans" };
 
-    @lombok.Data
-    public static class MonitorProperties {
-        /**
-         * Time interval to check the status of instances.
-         */
-        @DurationUnit(ChronoUnit.MILLIS)
-        private Duration statusInterval = Duration.ofMillis(10_000L);
+	public void setContextPath(String contextPath) {
+		this.contextPath = PathUtils.normalizePath(contextPath);
+	}
 
-        /**
-         * Lifetime of status. The status won't be updated as long the last status isn't
-         * expired.
-         */
-        @DurationUnit(ChronoUnit.MILLIS)
-        private Duration statusLifetime = Duration.ofMillis(10_000L);
+	/**
+	 * @param path the partial path within the admin context-path
+	 * @return the full path within the admin context-path
+	 */
+	public String path(String path) {
+		return this.contextPath + path;
+	}
 
-        /**
-         * Time interval to check the info of instances,
-         */
-        @DurationUnit(ChronoUnit.MILLIS)
-        private Duration infoInterval = Duration.ofMinutes(1L);
+	@lombok.Data
+	public static class MonitorProperties {
 
-        /**
-         * Lifetime of info. The info won't be updated as long the last info isn't
-         * expired.
-         */
-        @DurationUnit(ChronoUnit.MILLIS)
-        private Duration infoLifetime = Duration.ofMinutes(1L);
+		/**
+		 * Time interval to check the status of instances.
+		 */
+		@DurationUnit(ChronoUnit.MILLIS)
+		private Duration statusInterval = Duration.ofMillis(10_000L);
 
-        /**
-         * Default number of retries for failed requests. Individual values for specific endpoints can be overriden using `spring.boot.admin.monitor.retries.*`.
-         */
-        private int defaultRetries = 0;
+		/**
+		 * Lifetime of status. The status won't be updated as long the last status isn't
+		 * expired.
+		 */
+		@DurationUnit(ChronoUnit.MILLIS)
+		private Duration statusLifetime = Duration.ofMillis(10_000L);
 
-        /**
-         * Number of retries per endpointId. Defaults to default-retry.
-         */
-        private Map<String, Integer> retries = new HashMap<>();
+		/**
+		 * Time interval to check the info of instances,
+		 */
+		@DurationUnit(ChronoUnit.MILLIS)
+		private Duration infoInterval = Duration.ofMinutes(1L);
 
-        /**
-         * Default timeout when making requests. Individual values for specific endpoints can be overriden using `spring.boot.admin.monitor.timeout.*`.
-         */
-        @DurationUnit(ChronoUnit.MILLIS)
-        private Duration defaultTimeout = Duration.ofMillis(10_000L);
+		/**
+		 * Lifetime of info. The info won't be updated as long the last info isn't
+		 * expired.
+		 */
+		@DurationUnit(ChronoUnit.MILLIS)
+		private Duration infoLifetime = Duration.ofMinutes(1L);
 
-        /**
-         * timeout per endpointId. Defaults to default-timeout.
-         */
-        @DurationUnit(ChronoUnit.MILLIS)
-        private Map<String, Duration> timeout = new HashMap<>();
+		/**
+		 * Default number of retries for failed requests. Individual values for specific
+		 * endpoints can be overriden using `spring.boot.admin.monitor.retries.*`.
+		 */
+		private int defaultRetries = 0;
 
-        /**
-         * @deprecated in favor of statusInterval
-         */
-        @Deprecated
-        public void setPeriod(Duration period) {
-            this.setStatusInterval(period);
-        }
+		/**
+		 * Number of retries per endpointId. Defaults to default-retry.
+		 */
+		private Map<String, Integer> retries = new HashMap<>();
 
-        /**
-         * @deprecated in favor of statusInterval
-         */
-        @Deprecated
-        public Duration getPeriod() {
-            return this.getStatusInterval();
-        }
-    }
+		/**
+		 * Default timeout when making requests. Individual values for specific endpoints
+		 * can be overriden using `spring.boot.admin.monitor.timeout.*`.
+		 */
+		@DurationUnit(ChronoUnit.MILLIS)
+		private Duration defaultTimeout = Duration.ofMillis(10_000L);
 
-    @lombok.Data
-    public static class InstanceProxyProperties {
-        /**
-         * Headers not to be forwarded when making requests to clients.
-         */
-        private Set<String> ignoredHeaders = new HashSet<>(asList("Cookie", "Set-Cookie", "Authorization"));
-    }
+		/**
+		 * timeout per endpointId. Defaults to default-timeout.
+		 */
+		@DurationUnit(ChronoUnit.MILLIS)
+		private Map<String, Duration> timeout = new HashMap<>();
+
+	}
+
+	@lombok.Data
+	public static class InstanceAuthProperties {
+
+		/**
+		 * Whether or not to use configuration properties as a source for instance
+		 * credentials <br/>
+		 * Default: true
+		 */
+		private boolean enabled = true;
+
+		/**
+		 * Default username used for authentication to each instance. Individual values
+		 * for specific instances can be overriden using
+		 * `spring.boot.admin.instance-auth.service-map.*.user-name`. <br/>
+		 * Default: null
+		 */
+		private String defaultUserName = null;
+
+		/**
+		 * Default userpassword used for authentication to each instance. Individual
+		 * values for specific instances can be overriden using
+		 * `spring.boot.admin.instance-auth.service-map.*.user-password`. <br/>
+		 * Default: null
+		 */
+		private String defaultPassword = null;
+
+		/**
+		 * Map of instance credentials per registered service name
+		 */
+		private Map<String, InstanceCredentials> serviceMap = new HashMap<>();
+
+	}
+
+	@lombok.Data
+	public static class InstanceProxyProperties {
+
+		/**
+		 * Headers not to be forwarded when making requests to clients.
+		 */
+		private Set<String> ignoredHeaders = new HashSet<>(asList("Cookie", "Set-Cookie", "Authorization"));
+
+	}
+
 }
